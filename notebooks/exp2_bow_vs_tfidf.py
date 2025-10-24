@@ -36,7 +36,7 @@ CONFIG = {
     "mlflow_tracking_uri": os.getenv("MLFLOW_TRACKING_URI"),
     "dagshub_repo_owner": os.getenv("DAGSHUB_REPO_OWNER"),
     "dagshub_repo_name": os.getenv("DAGSHUB_REPO_NAME"),
-    "experiment_name": "Bow vs TfIdf",
+    "experiment_name": "Bow vs TfIdf Comparison",  # CHANGED: New experiment name
     "local_model_dir": os.getenv("LOCAL_MODEL_DIR", "notebooks/models")
 }
 
@@ -51,6 +51,7 @@ try:
 except Exception as e:
     print(f"Warning: dagshub.init() issue: {e}")
 
+# Use a NEW experiment name to avoid the deleted experiment error
 mlflow.set_experiment(CONFIG["experiment_name"])
 
 # ========================== TEXT PREPROCESSING ==========================

@@ -31,7 +31,7 @@ CONFIG = {
     "mlflow_tracking_uri": os.getenv("MLFLOW_TRACKING_URI"),
     "dagshub_repo_owner": os.getenv("DAGSHUB_REPO_OWNER"),
     "dagshub_repo_name": os.getenv("DAGSHUB_REPO_NAME"),
-    "experiment_name": "LogisticRegression Hyperparameter Tuning",
+    "experiment_name": "LogisticRegression Hyperparameter Tuning New",  # CHANGED: New experiment name
     "local_model_dir": os.getenv("LOCAL_MODEL_DIR", "notebooks/models"),
     "cv_folds": 5,
     "scoring_metric": "f1"
