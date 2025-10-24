@@ -7,4 +7,4 @@ credential.txt
 .DS_Store
 .idea/
 *.log
-
+local_s3/
