@@ -1,0 +1,15 @@
+Model: RandomForest
+Model Name: RandomForest_TF-IDF
+Files:
+  - model.joblib: Trained model
+  - vectorizer.joblib: Text vectorizer
+
+Usage:
+import joblib
+model = joblib.load('model.joblib')
+vectorizer = joblib.load('vectorizer.joblib')
+
+# Make predictions
+new_text = ['Your text here']
+features = vectorizer.transform(new_text)
+prediction = model.predict(features)
