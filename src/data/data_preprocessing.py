@@ -2,12 +2,15 @@
 """Data preprocessing module for text cleaning and transformation."""
 
 import re
+import sys,os
 import string
 import pandas as pd
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from pathlib import Path
+project_root = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(project_root))
 from src.logger import logging
 nltk.download('wordnet', quiet=True)
 nltk.download('stopwords', quiet=True)

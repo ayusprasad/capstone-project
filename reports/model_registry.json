@@ -1,0 +1,67 @@
+{
+    "models": {
+        "my_model": {
+            "name": "my_model",
+            "description": "Logistic Regression model for sentiment analysis",
+            "created_at": "2025-11-01 11:13:51",
+            "latest_version": 3,
+            "versions": [
+                {
+                    "version": 1,
+                    "run_id": "bcc31912641e402d92137f3941b9d28c",
+                    "experiment_id": "6",
+                    "model_path": "models/model_v1.pkl",
+                    "original_model_path": "model",
+                    "model_uri": "runs:/bcc31912641e402d92137f3941b9d28c/model",
+                    "mlflow_run_url": "https://dagshub.com/ayusprasad/capstone-project.mlflow/#/experiments/6/runs/bcc31912641e402d92137f3941b9d28c",
+                    "mlflow_experiment_url": "https://dagshub.com/ayusprasad/capstone-project.mlflow/#/experiments/6",
+                    "registered_at": "2025-11-01 11:13:51",
+                    "metrics": {
+                        "accuracy": 0.7,
+                        "precision": 0.7222222222222222,
+                        "recall": 0.7222222222222222,
+                        "auc": 0.7266505636070855
+                    },
+                    "status": "production"
+                },
+                {
+                    "version": 2,
+                    "run_id": "bcc31912641e402d92137f3941b9d28c",
+                    "experiment_id": "6",
+                    "model_path": "models/model_v2.pkl",
+                    "original_model_path": "model",
+                    "model_uri": "runs:/bcc31912641e402d92137f3941b9d28c/model",
+                    "mlflow_run_url": "https://dagshub.com/ayusprasad/capstone-project.mlflow/#/experiments/6/runs/bcc31912641e402d92137f3941b9d28c",
+                    "mlflow_experiment_url": "https://dagshub.com/ayusprasad/capstone-project.mlflow/#/experiments/6",
+                    "registered_at": "2025-11-01 11:18:00",
+                    "metrics": {
+                        "accuracy": 0.7,
+                        "precision": 0.7222222222222222,
+                        "recall": 0.7222222222222222,
+                        "auc": 0.7266505636070855
+                    },
+                    "status": "production"
+                },
+                {
+                    "version": 3,
+                    "run_id": "c2e6432668844170bb128c2c44e30594",
+                    "experiment_id": "6",
+                    "model_path": "models/model_v3.pkl",
+                    "original_model_path": "model",
+                    "model_uri": "runs:/c2e6432668844170bb128c2c44e30594/model",
+                    "mlflow_run_url": "https://dagshub.com/ayusprasad/capstone-project.mlflow/#/experiments/6/runs/c2e6432668844170bb128c2c44e30594",
+                    "mlflow_experiment_url": "https://dagshub.com/ayusprasad/capstone-project.mlflow/#/experiments/6",
+                    "registered_at": "2025-11-01 11:38:53",
+                    "metrics": {
+                        "accuracy": 0.68,
+                        "precision": 0.7142857142857143,
+                        "recall": 0.7142857142857143,
+                        "auc": 0.7236363636363637
+                    },
+                    "status": "production"
+                }
+            ],
+            "updated_at": "2025-11-01 11:38:53"
+        }
+    }
+}
