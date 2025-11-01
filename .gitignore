@@ -8,3 +8,5 @@ credential.txt
 .idea/
 *.log
 local_s3/
+AGENTS.md
+.gitignore
