@@ -24,17 +24,24 @@ dagshub_token = os.getenv("MLFLOW_TRACKING_URI")
 dagshub_repo_owner = os.getenv("DAGSHUB_REPO_OWNER")
 dagshub_repo_name = os.getenv("DAGSHUB_REPO_NAME")
 
-# Initialize DagHub and MLflow
-if mlflow.set_tracking_uri:
-    mlflow.set_tracking_uri(dagshub_token)
+# Initialize DagHub and MLflow when available. In CI or non-DagsHub
+# environments this may fail; treat initialization as non-fatal so the
+# registration step can still update local registry files used by DVC.
+if dagshub_token:
+    try:
+        mlflow.set_tracking_uri(dagshub_token)
+    except Exception as e:
+        logging.warning('Failed to set MLflow tracking URI: %s', e)
 
-dagshub.init(
-    repo_owner=dagshub_repo_owner, 
-    repo_name=dagshub_repo_name, 
-    mlflow=True
-)
-    
-print(f"MLflow Tracking URI: {mlflow.get_tracking_uri()}")
+try:
+    dagshub.init(
+        repo_owner=dagshub_repo_owner,
+        repo_name=dagshub_repo_name,
+        mlflow=True,
+    )
+    print(f"MLflow Tracking URI: {mlflow.get_tracking_uri()}")
+except Exception as e:
+    logging.warning('DagsHub initialization skipped: %s', e)
 
 
 def load_model_info(file_path: str) -> dict:
