@@ -41,16 +41,28 @@ dagshub_repo_name = os.getenv("DAGSHUB_REPO_NAME")
 
 # Below code block is for local use
 # -------------------------------------------------------------------------------------
-if mlflow.set_tracking_uri:
-    mlflow.set_tracking_uri(dagshub_token)
+# Configure MLflow tracking URI if provided via environment.
+if dagshub_token:
+    try:
+        mlflow.set_tracking_uri(dagshub_token)
+    except Exception as e:
+        logging.warning('Failed to set MLflow tracking URI: %s', e)
 
-dagshub.init(
-    repo_owner=dagshub_repo_owner, 
-    repo_name=dagshub_repo_name, 
-    mlflow=True
-)
-    
-print(f"MLflow Tracking URI: {mlflow.get_tracking_uri()}")
+# Initialize DagsHub integration when available. In CI (or non-DagsHub
+# environments) this may fail (repo not found); treat that as non-fatal so
+# the evaluation step can still run and produce DVC-tracked outputs.
+try:
+    dagshub.init(
+        repo_owner=dagshub_repo_owner,
+        repo_name=dagshub_repo_name,
+        mlflow=True,
+    )
+    print(f"MLflow Tracking URI: {mlflow.get_tracking_uri()}")
+except Exception as e:
+    # Common failure is DagsHubRepoNotFoundError when not running inside a
+    # DagsHub repository. Log a warning and continue; evaluation should still
+    # complete and produce the expected artifacts for DVC.
+    logging.warning('DagsHub initialization skipped: %s', e)
 # -------------------------------------------------------------------------------------
 
 
