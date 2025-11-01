@@ -149,15 +149,44 @@ def main():
                 for param_name, param_value in params.items():
                     mlflow.log_param(param_name, param_value)
             
-            # Save model info (DagsHub doesn't support model logging)
-            save_model_info(run.info.run_id, "model", 'reports/experiment_info.json')
-            
-            # Log the metrics file to MLflow
-            mlflow.log_artifact('reports/metrics.json')
+            # Log the model artifact to MLflow (as an artifact). We log the model
+            # even if the Model Registry operation (register_model) fails on
+            # certain tracking backends (e.g., Dagshub free tier).
+            model_name = "my_model"
+            try:
+                mlflow.sklearn.log_model(clf, "model")
+                logging.info('Model artifact logged to MLflow under "model"')
+            except Exception as e:
+                logging.warning('Failed to log model artifact to MLflow: %s', e)
+
+            # Save model info to a local file that downstream steps (DVC) expect.
+            info_path = 'reports/experiment_info.json'
+            save_model_info(run.info.run_id, "model", info_path)
+
+            # Attempt to register the model in the MLflow Model Registry.
+            # Some backends (Dagshub free tier) may not support the registry API;
+            # if registration fails, catch the error and continue so the run
+            # completes and produces the expected outputs for DVC.
+            try:
+                registered_model_uri = f"runs:/{run.info.run_id}/model"
+                mv = mlflow.register_model(registered_model_uri, model_name)
+                logging.info('Model registered: %s v%s', model_name, mv.version)
+                print(f"Model registered as: {model_name} (version {mv.version})")
+            except Exception as e:
+                logging.warning('Model registry operation failed: %s', e)
+                print(f"Warning: model registry operation failed: {e}")
+
+            # Log the metrics file to MLflow as an artifact so it's attached to the run
+            try:
+                mlflow.log_artifact('reports/metrics.json')
+            except Exception as e:
+                logging.warning('Failed to log metrics artifact to MLflow: %s', e)
 
         except Exception as e:
-            logging.error('Failed to complete the model evaluation process: %s', e)
+            err_msg = 'Failed to complete the model evaluation process: %s'
+            logging.error(err_msg, e)
             print(f"Error: {e}")
+
 
 if __name__ == '__main__':
     main()

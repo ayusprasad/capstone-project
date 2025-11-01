@@ -86,23 +86,45 @@ def get_next_version(registry: dict, model_name: str) -> int:
 
 
 def register_model(model_name: str, model_info: dict):
-    """Save model metadata locally with versioning (DagHub free tier has limited model registry support)."""
+    """Register a model with versioning support."""
     try:
-        # Check if run_id exists
-        if 'run_id' not in model_info:
-            logging.warning('run_id not found in model_info. Skipping model registration.')
-            print("Model registration skipped: run_id not available in experiment_info.json")
-            return
-        
-        # Get experiment_id from MLflow
-        experiment_id = model_info.get('experiment_id')
-        if not experiment_id:
+        # Get experiment ID and run
+        experiment_id = None
+        if 'run_id' in model_info:
             try:
+                # Get run info
                 run = mlflow.get_run(model_info['run_id'])
                 experiment_id = run.info.experiment_id
-                logging.info(f'Retrieved experiment_id: {experiment_id} from run')
+                logging.info(f'Got experiment_id: {experiment_id}')
+                
+                # Register in MLflow Model Registry
+                try:
+                    model_path = model_info.get('model_path', 'model')
+                    model_uri = f"runs:/{model_info['run_id']}/{model_path}"
+                    registered_model = mlflow.register_model(
+                        model_uri, 
+                        model_name
+                    )
+                    logging.info(
+                        f"Registered model: {registered_model.name}"
+                        f" v{registered_model.version}"
+                    )
+                    
+                    # Move to staging
+                    client = mlflow.tracking.MlflowClient()
+                    client.transition_model_version_stage(
+                        name=model_name,
+                        version=registered_model.version,
+                        stage="Staging"
+                    )
+                    logging.info(
+                        f"Model {model_name} v{registered_model.version}"
+                        " moved to Staging"
+                    )
+                except Exception as e:
+                    logging.warning(f'MLflow registration failed: {e}')
             except Exception as e:
-                logging.warning(f'Could not fetch experiment_id: {e}')
+                logging.warning(f'Could not get experiment_id: {e}')
                 experiment_id = 'unknown'
         
         # Load metrics from reports/metrics.json

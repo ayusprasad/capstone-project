@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis | AI Text Classifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Sentiment Analysis</h1>
+            <p>Discover the emotional tone behind any text with AI-powered analysis</p>
+        </div>
+
+        <form id="sentimentForm" action="/predict" method="POST">
+            <div class="form-group">
+                <label for="text">
+                    <i class="fas fa-comment-dots"></i> Enter your text below:
+                </label>
+                <textarea 
+                    id="text" 
+                    name="text" 
+                    rows="5" 
+                    placeholder="Type your text here... Example: 'I absolutely love this product! It has changed my life for the better.'"
+                    required></textarea>
+            </div>
+            
+            <button type="submit" class="btn" id="submitBtn">
+                <i class="fas fa-brain"></i> Analyze Sentiment
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing your text with AI...</p>
+        </div>
+
+        {% if result is not none %}
+            <div class="result-container">
+                <div class="result {% if result == 1 %}positive{% else %}negative{% endif %}">
+                    <span class="emoji floating">
+                        {% if result == 1 %}
+                            😊
+                        {% else %}
+                            😞
+                        {% endif %}
+                    </span>
+                    {% if result == 1 %}
+                        Positive Sentiment Detected!
+                    {% else %}
+                        Negative Sentiment Detected
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="features">
+            <div class="feature">
+                <i class="fas fa-bolt" style="color: #6366f1;"></i>
+                Real-time Analysis
+            </div>
+            <div class="feature">
+                <i class="fas fa-shield-alt" style="color: #10b981;"></i>
+                Accurate Results
+            </div>
+            <div class="feature">
+                <i class="fas fa-rocket" style="color: #f59e0b;"></i>
+                Fast Processing
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('sentimentForm').addEventListener('submit', function() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('submitBtn').style.display = 'none';
+        });
+
+        // Auto-resize textarea
+        const textarea = document.getElementById('text');
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Add some sample texts for quick testing
+        const sampleTexts = [
+            "I absolutely love this product! It has changed my life for the better.",
+            "This is the worst service I've ever experienced. Never again!",
+            "The weather is nice today and I'm feeling great about everything.",
+            "I'm really disappointed with the quality and the customer service was terrible."
+        ];
+
+        // Uncomment the line below if you want to pre-fill with a random sample
+        // textarea.value = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
+    </script>
+</body>
+</html>
