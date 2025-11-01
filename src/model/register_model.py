@@ -269,7 +269,7 @@ def main():
         register_model(model_name, model_info)
         
         # Uncomment to list all models after registration
-        # print("\n")
+        print("\n")
         list_models()
         
     except Exception as e:
