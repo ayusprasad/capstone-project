@@ -4,7 +4,7 @@
             "name": "my_model",
             "description": "Logistic Regression model for sentiment analysis",
             "created_at": "2025-11-01 11:13:51",
-            "latest_version": 11,
+            "latest_version": 13,
             "versions": [
                 {
                     "version": 1,
@@ -203,9 +203,45 @@
                         "auc": 0.7270129870129871
                     },
                     "status": "production"
+                },
+                {
+                    "version": 12,
+                    "run_id": "2350f83993fc4828bf46975e8ae81c54",
+                    "experiment_id": "6",
+                    "model_path": "models/model_v12.pkl",
+                    "original_model_path": "model",
+                    "model_uri": "runs:/2350f83993fc4828bf46975e8ae81c54/model",
+                    "mlflow_run_url": "https://dagshub.com/ayusprasad/capstone-project.mlflow/#/experiments/6/runs/2350f83993fc4828bf46975e8ae81c54",
+                    "mlflow_experiment_url": "https://dagshub.com/ayusprasad/capstone-project.mlflow/#/experiments/6",
+                    "registered_at": "2025-11-02 09:39:31",
+                    "metrics": {
+                        "accuracy": 0.704,
+                        "precision": 0.7391304347826086,
+                        "recall": 0.7285714285714285,
+                        "auc": 0.7270129870129871
+                    },
+                    "status": "production"
+                },
+                {
+                    "version": 13,
+                    "run_id": "e9089d1019a648a3a07ee3dac2344543",
+                    "experiment_id": "6",
+                    "model_path": "models/model_v13.pkl",
+                    "original_model_path": "model",
+                    "model_uri": "runs:/e9089d1019a648a3a07ee3dac2344543/model",
+                    "mlflow_run_url": "https://dagshub.com/ayusprasad/capstone-project.mlflow/#/experiments/6/runs/e9089d1019a648a3a07ee3dac2344543",
+                    "mlflow_experiment_url": "https://dagshub.com/ayusprasad/capstone-project.mlflow/#/experiments/6",
+                    "registered_at": "2025-11-02 09:50:49",
+                    "metrics": {
+                        "accuracy": 0.704,
+                        "precision": 0.7391304347826086,
+                        "recall": 0.7285714285714285,
+                        "auc": 0.7270129870129871
+                    },
+                    "status": "production"
                 }
             ],
-            "updated_at": "2025-11-02 09:31:48"
+            "updated_at": "2025-11-02 09:50:49"
         }
     }
 }

@@ -1,19 +1,34 @@
-import numpy as np
-import pandas as pd
-import pickle
+"""Model evaluation script that handles MLflow tracking with fallbacks."""
 import json
-from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
 import logging
+import os
+import pickle
+import sys
+from pathlib import Path
+
+import dagshub
 import mlflow
 import mlflow.sklearn
-import dagshub
-import os,sys,pathlib
+import numpy as np
+import pandas as pd
 import dotenv
-from dotenv import dotenv_values        
-from pathlib import Path
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    roc_auc_score
+)
+
+# Set up logging early to catch any initialization issues
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s [%(name)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Add project root to path
 project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
-from src.logger import logging
 
 load_dotenv = dotenv.load_dotenv
 load_dotenv(dotenv_path=project_root / '.env')
@@ -157,62 +172,137 @@ def save_model_info(run_id: str, model_path: str, file_path: str) -> None:
         logging.error('Error occurred while saving the model info: %s', e)
         raise
 
+# Dummy context for when MLflow is unavailable
+class DummyContext:
+    """Context manager that mimics MLflow run context when MLflow fails."""
+    
+    def __init__(self):
+        """Initialize with a dummy run info object."""
+        self.info = type('RunInfo', (), {'run_id': 'no-mlflow'})()
+    
+    def __enter__(self):
+        """Enter the context."""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit the context."""
+        pass
+
+
 def main():
-    mlflow.set_experiment("my-dvc-pipeline")
-    with mlflow.start_run() as run:  # Start an MLflow run
+    """Main function to evaluate the model and log metrics."""
+    experiment_name = "my-dvc-pipeline"
+    tracking_available = False
+    
+    try:
+        # Import MLflow here to avoid scoping issues
+        import mlflow  
+        import mlflow.sklearn
+
+        # Initialize MLflow tracking
+        tracking_uri = mlflow.get_tracking_uri()
+        if not tracking_uri:
+            local_store = Path("mlruns").absolute()
+            local_store.mkdir(parents=True, exist_ok=True)
+            tracking_uri = f"file://{local_store}"
+            mlflow.set_tracking_uri(tracking_uri)
+        logging.info("Using MLflow tracking at %s", tracking_uri)
+        
+        # Get or create experiment safely
+        experiment = None
         try:
+            experiment = mlflow.get_experiment_by_name(experiment_name)
+        except Exception as e:
+            logging.info("Couldn't find experiment: %s", e)
+        
+        # Create if it doesn't exist
+        if experiment is None:
+            try:
+                mlflow.create_experiment(experiment_name)
+                logging.info("Created experiment %s", experiment_name)
+            except Exception as e:
+                logging.info("Couldn't create experiment: %s", e)
+        
+        # Set experiment and start run
+        mlflow.set_experiment(experiment_name)
+        run_ctx = mlflow.start_run()
+        tracking_available = True
+        logging.info("Started MLflow run")
+    except Exception as e:
+        logging.warning("MLflow tracking disabled: %s", e)
+        run_ctx = DummyContext()
+    
+    # Continue with model evaluation using either MLflow or dummy context
+    with run_ctx as run:
+        try:
+            # Core model evaluation
             clf = load_model('./models/model.pkl')
             test_data = load_data('./data/processed/test_bow.csv')
             
-            X_test = test_data.iloc[:, :-1].values
-            y_test = test_data.iloc[:, -1].values
+            import numpy as np
+            X_test = np.array(test_data.iloc[:, :-1].values)
+            y_test = np.array(test_data.iloc[:, -1].values)
 
             metrics = evaluate_model(clf, X_test, y_test)
-            
             save_metrics(metrics, 'reports/metrics.json')
-            
-            # Log metrics to MLflow
-            for metric_name, metric_value in metrics.items():
-                mlflow.log_metric(metric_name, metric_value)
-            
-            # Log model parameters to MLflow
-            if hasattr(clf, 'get_params'):
-                params = clf.get_params()
-                for param_name, param_value in params.items():
-                    mlflow.log_param(param_name, param_value)
-            
-            # Log the model artifact to MLflow (as an artifact). We log the model
-            # even if the Model Registry operation (register_model) fails on
-            # certain tracking backends (e.g., Dagshub free tier).
-            model_name = "my_model"
-            try:
-                mlflow.sklearn.log_model(clf, "model")
-                logging.info('Model artifact logged to MLflow under "model"')
-            except Exception as e:
-                logging.warning('Failed to log model artifact to MLflow: %s', e)
 
-            # Save model info to a local file that downstream steps (DVC) expect.
+            # Only attempt MLflow operations if tracking is available
+            if tracking_available and mlflow:
+                # Log metrics
+                for name, value in metrics.items():
+                    try:
+                        mlflow.log_metric(name, value)
+                    except Exception as e:
+                        logging.warning('Failed to log metric %s: %s', name, e)
+                
+                # Log parameters if model has get_params
+                if hasattr(clf, 'get_params'):
+                    for name, value in clf.get_params().items():
+                        try:
+                            mlflow.log_param(name, value)
+                        except Exception as e:
+                            logging.warning(
+                                'Failed to log parameter %s: %s',
+                                name,
+                                e)
+                
+                # Log model artifact
+                try:
+                    model_log = __import__('mlflow.sklearn')
+                    model_log.sklearn.log_model(clf, "model")
+                    logging.info('Model logged to MLflow')
+                except Exception as e:
+                    logging.warning('Failed to log model: %s', e)
+
+                # Try model registry
+                try:
+                    model_name = "my_model"
+                    run_id = getattr(run.info, '_run_uuid',
+                                   getattr(run.info, 'run_id', None))
+                    if not run_id:
+                        run_id = 'unknown'
+                    uri = f"runs:/{run_id}/model"
+                    mv = mlflow.register_model(uri, model_name)
+                    msg = f'Registered as {model_name} v{mv.version}'
+                    logging.info(msg)
+                except Exception as e:
+                    logging.warning('Model registry failed: %s', e)
+
+                # Log metrics file as artifact
+                try:
+                    mlflow.log_artifact('reports/metrics.json')
+                except Exception as e:
+                    logging.warning('Failed to log metrics file: %s', e)
             info_path = 'reports/experiment_info.json'
-            save_model_info(run.info.run_id, "model", info_path)
-
-            # Attempt to register the model in the MLflow Model Registry.
-            # Some backends (Dagshub free tier) may not support the registry API;
-            # if registration fails, catch the error and continue so the run
-            # completes and produces the expected outputs for DVC.
-            try:
-                registered_model_uri = f"runs:/{run.info.run_id}/model"
-                mv = mlflow.register_model(registered_model_uri, model_name)
-                logging.info('Model registered: %s v%s', model_name, mv.version)
-                print(f"Model registered as: {model_name} (version {mv.version})")
-            except Exception as e:
-                logging.warning('Model registry operation failed: %s', e)
-                print(f"Warning: model registry operation failed: {e}")
-
-            # Log the metrics file to MLflow as an artifact so it's attached to the run
-            try:
-                mlflow.log_artifact('reports/metrics.json')
-            except Exception as e:
-                logging.warning('Failed to log metrics artifact to MLflow: %s', e)
+            if tracking_available and run and run.info:
+                run_id = getattr(
+                    run.info,
+                    '_run_uuid',
+                    getattr(run.info, 'run_id', 'no-mlflow')
+                )
+            else:
+                run_id = 'no-mlflow'
+            save_model_info(run_id, "model", info_path)
 
         except Exception as e:
             err_msg = 'Failed to complete the model evaluation process: %s'
