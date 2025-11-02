@@ -53,7 +53,11 @@ jobs:
         if: success()
         env:
           CAPSTONE_TEST: ${{ secrets.CAPSTONE_TEST }}
-        run: python scripts/promote_model.py
+        run: |
+          # Promote best model using all metrics (accuracy, auc, recall) with equal weights
+          # --local-only ensures deterministic behavior in CI even if MLflow is unavailable
+          python scripts/promote_model.py --model-name my_model --local-only \
+            --metrics accuracy,auc,recall --weights 1,1,1
 
       - name: Run Flask app tests
         if: success()
