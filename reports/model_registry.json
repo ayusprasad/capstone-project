@@ -22,7 +22,7 @@
                         "recall": 0.7222222222222222,
                         "auc": 0.7266505636070855
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 2,
@@ -40,7 +40,7 @@
                         "recall": 0.7222222222222222,
                         "auc": 0.7266505636070855
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 3,
@@ -58,7 +58,7 @@
                         "recall": 0.7142857142857143,
                         "auc": 0.7236363636363637
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 4,
@@ -76,7 +76,7 @@
                         "recall": 0.7285714285714285,
                         "auc": 0.7270129870129871
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 5,
@@ -94,7 +94,7 @@
                         "recall": 0.7285714285714285,
                         "auc": 0.7270129870129871
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 6,
@@ -112,7 +112,7 @@
                         "recall": 0.7285714285714285,
                         "auc": 0.7270129870129871
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 7,
@@ -130,7 +130,7 @@
                         "recall": 0.7285714285714285,
                         "auc": 0.7270129870129871
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 8,
@@ -148,7 +148,7 @@
                         "recall": 0.7285714285714285,
                         "auc": 0.7270129870129871
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 9,
@@ -166,7 +166,7 @@
                         "recall": 0.7285714285714285,
                         "auc": 0.7270129870129871
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 10,
@@ -184,7 +184,7 @@
                         "recall": 0.7285714285714285,
                         "auc": 0.7270129870129871
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 11,
@@ -202,7 +202,7 @@
                         "recall": 0.7285714285714285,
                         "auc": 0.7270129870129871
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 12,
@@ -220,7 +220,7 @@
                         "recall": 0.7285714285714285,
                         "auc": 0.7270129870129871
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 13,
@@ -238,7 +238,7 @@
                         "recall": 0.7285714285714285,
                         "auc": 0.7270129870129871
                     },
-                    "status": "production"
+                    "status": "archived"
                 },
                 {
                     "version": 14,
@@ -256,7 +256,7 @@
                         "recall": 0.7285714285714285,
                         "auc": 0.7270129870129871
                     },
-                    "status": "staging"
+                    "status": "production"
                 }
             ],
             "updated_at": "2025-11-02 10:36:16"
