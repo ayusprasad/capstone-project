@@ -27,12 +27,32 @@ dagshub_repo_name = os.getenv("DAGSHUB_REPO_NAME")
 # Initialize DagHub and MLflow when available. In CI or non-DagsHub
 # environments this may fail; treat initialization as non-fatal so the
 # registration step can still update local registry files used by DVC.
-if dagshub_token:
-    try:
-        mlflow.set_tracking_uri(dagshub_token)
-    except Exception as e:
-        logging.warning('Failed to set MLflow tracking URI: %s', e)
+# --------------------------------------------------------------------------------------------
 
+
+capstone_token = os.getenv("CAPSTONE_TEST")
+if capstone_token:
+    # Set MLflow/DagsHub credentials from the provided token
+    os.environ["MLFLOW_TRACKING_USERNAME"] = capstone_token
+    os.environ["MLFLOW_TRACKING_PASSWORD"] = capstone_token
+    dagshub_url = "https://dagshub.com"
+    repo_owner = dagshub_repo_owner or os.getenv("USER") or "ayusprasad"
+    repo_name = dagshub_repo_name or "capstone-project"
+    try:
+        mlflow.set_tracking_uri(f"{dagshub_url}/{repo_owner}/{repo_name}.mlflow")
+    except Exception as e:
+        logging.warning('Failed to set MLflow tracking URI from CAPSTONE_TEST: %s', e)
+else:
+    # Fall back to an explicit MLflow URI if provided via env (local dev)
+    if dagshub_token:
+        try:
+            mlflow.set_tracking_uri(dagshub_token)
+        except Exception as e:
+            logging.warning('Failed to set MLflow tracking URI: %s', e)
+
+# Initialize DagsHub integration when available. In CI (or non-DagsHub
+# environments) this may fail (repo not found); treat that as non-fatal so
+# the evaluation step can still run and produce DVC-tracked outputs.
 try:
     dagshub.init(
         repo_owner=dagshub_repo_owner,
@@ -43,6 +63,36 @@ try:
 except Exception as e:
     logging.warning('DagsHub initialization skipped: %s', e)
 
+
+
+
+
+
+
+
+
+
+
+
+
+#----------------------------------------------------------------------------------------
+# if dagshub_token:
+#     try:
+#         mlflow.set_tracking_uri(dagshub_token)
+#     except Exception as e:
+#         logging.warning('Failed to set MLflow tracking URI: %s', e)
+
+# try:
+#     dagshub.init(
+#         repo_owner=dagshub_repo_owner,
+#         repo_name=dagshub_repo_name,
+#         mlflow=True,
+#     )
+#     print(f"MLflow Tracking URI: {mlflow.get_tracking_uri()}")
+# except Exception as e:
+#     logging.warning('DagsHub initialization skipped: %s', e)
+
+# ------------------------------------------------------------------------------------------
 
 def load_model_info(file_path: str) -> dict:
     """Load the model info from a JSON file."""

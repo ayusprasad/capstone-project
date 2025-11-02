@@ -21,32 +21,30 @@ load_dotenv(dotenv_path=project_root / '.env')
 dagshub_token = os.getenv("MLFLOW_TRACKING_URI")
 dagshub_repo_owner = os.getenv("DAGSHUB_REPO_OWNER")
 dagshub_repo_name = os.getenv("DAGSHUB_REPO_NAME")
-# Below code block is for production use
-# -------------------------------------------------------------------------------------
-# Set up DagsHub credentials for MLflow tracking
-# dagshub_token = os.getenv("CAPSTONE_TEST")
-# if not dagshub_token:
-#     raise EnvironmentError("CAPSTONE_TEST environment variable is not set")
 
-# os.environ["MLFLOW_TRACKING_USERNAME"] = dagshub_token
-# os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
-
-# dagshub_url = "https://dagshub.com"
-# repo_owner = "vikashdas770"
-# repo_name = "YT-Capstone-Project"
-
-# # Set up MLflow tracking URI
-# mlflow.set_tracking_uri(f'{dagshub_url}/{repo_owner}/{repo_name}.mlflow')
-# -------------------------------------------------------------------------------------
-
-# Below code block is for local use
-# -------------------------------------------------------------------------------------
-# Configure MLflow tracking URI if provided via environment.
-if dagshub_token:
+# Production / CI: if a project token is provided via CAPSTONE_TEST, use it
+# to authenticate with DagsHub and set the MLflow tracking URI. This is
+# optional — when running locally without that token, we fall back to any
+# `MLFLOW_TRACKING_URI` from the environment or continue offline.
+capstone_token = os.getenv("CAPSTONE_TEST")
+if capstone_token:
+    # Set MLflow/DagsHub credentials from the provided token
+    os.environ["MLFLOW_TRACKING_USERNAME"] = capstone_token
+    os.environ["MLFLOW_TRACKING_PASSWORD"] = capstone_token
+    dagshub_url = "https://dagshub.com"
+    repo_owner = dagshub_repo_owner or os.getenv("USER") or "ayusprasad"
+    repo_name = dagshub_repo_name or "capstone-project"
     try:
-        mlflow.set_tracking_uri(dagshub_token)
+        mlflow.set_tracking_uri(f"{dagshub_url}/{repo_owner}/{repo_name}.mlflow")
     except Exception as e:
-        logging.warning('Failed to set MLflow tracking URI: %s', e)
+        logging.warning('Failed to set MLflow tracking URI from CAPSTONE_TEST: %s', e)
+else:
+    # Fall back to an explicit MLflow URI if provided via env (local dev)
+    if dagshub_token:
+        try:
+            mlflow.set_tracking_uri(dagshub_token)
+        except Exception as e:
+            logging.warning('Failed to set MLflow tracking URI: %s', e)
 
 # Initialize DagsHub integration when available. In CI (or non-DagsHub
 # environments) this may fail (repo not found); treat that as non-fatal so
@@ -59,10 +57,32 @@ try:
     )
     print(f"MLflow Tracking URI: {mlflow.get_tracking_uri()}")
 except Exception as e:
-    # Common failure is DagsHubRepoNotFoundError when not running inside a
-    # DagsHub repository. Log a warning and continue; evaluation should still
-    # complete and produce the expected artifacts for DVC.
     logging.warning('DagsHub initialization skipped: %s', e)
+
+# # Below code block is for local use
+# # -------------------------------------------------------------------------------------
+# # Configure MLflow tracking URI if provided via environment.
+# if dagshub_token:
+#     try:
+#         mlflow.set_tracking_uri(dagshub_token)
+#     except Exception as e:
+#         logging.warning('Failed to set MLflow tracking URI: %s', e)
+
+# # Initialize DagsHub integration when available. In CI (or non-DagsHub
+# # environments) this may fail (repo not found); treat that as non-fatal so
+# # the evaluation step can still run and produce DVC-tracked outputs.
+# try:
+#     dagshub.init(
+#         repo_owner=dagshub_repo_owner,
+#         repo_name=dagshub_repo_name,
+#         mlflow=True,
+#     )
+#     print(f"MLflow Tracking URI: {mlflow.get_tracking_uri()}")
+# except Exception as e:
+#     # Common failure is DagsHubRepoNotFoundError when not running inside a
+#     # DagsHub repository. Log a warning and continue; evaluation should still
+#     # complete and produce the expected artifacts for DVC.
+#     logging.warning('DagsHub initialization skipped: %s', e)
 # -------------------------------------------------------------------------------------
 
 
