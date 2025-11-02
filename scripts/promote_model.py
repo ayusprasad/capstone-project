@@ -1,75 +1,116 @@
 # promote model
 
 import os
+import json
 import logging
-import mlflow
-import dagshub
 
-def promote_model():
-    dagshub_repo_owner = os.getenv("DAGSHUB_REPO_OWNER")
-    dagshub_repo_name = os.getenv("DAGSHUB_REPO_NAME")
+logging.basicConfig(level=logging.INFO)
+
+
+def load_registry():
+    """Load the model registry."""
+    registry_path = 'reports/model_registry.json'
+    if not os.path.exists(registry_path):
+        logging.error('Model registry not found')
+        return None
     
-    dagshub_url = "https://dagshub.com"
-    repo_owner = dagshub_repo_owner or "ayusprasad"
-    repo_name = dagshub_repo_name or "capstone-project"
+    with open(registry_path, 'r') as f:
+        return json.load(f)
 
-    # Production / CI: if a project token is provided via CAPSTONE_TEST, use it
-    # to authenticate with DagsHub and set the MLflow tracking URI. This is
-    # optional — when running locally without that token, we fall back to any
-    # `MLFLOW_TRACKING_URI` from the environment or continue offline.
-    capstone_token = os.getenv("CAPSTONE_TEST")
-    if capstone_token:
-        # Set MLflow/DagsHub credentials from the provided token
-        os.environ["MLFLOW_TRACKING_USERNAME"] = capstone_token
-        os.environ["MLFLOW_TRACKING_PASSWORD"] = capstone_token
-        try:
-            mlflow.set_tracking_uri(f"{dagshub_url}/{repo_owner}/{repo_name}.mlflow")
-        except Exception as e:
-            logging.warning('Failed to set MLflow tracking URI from CAPSTONE_TEST: %s', e)
-    else:
-        # Fall back to an explicit MLflow URI if provided via env (local dev)
-        dagshub_token = os.getenv("MLFLOW_TRACKING_URI")
-        if dagshub_token:
-            try:
-                mlflow.set_tracking_uri(dagshub_token)
-            except Exception as e:
-                logging.warning('Failed to set MLflow tracking URI: %s', e)
 
-    # Initialize DagsHub integration when available. In CI (or non-DagsHub
-    # environments) this may fail (repo not found); treat that as non-fatal so
-    # the evaluation step can still run and produce DVC-tracked outputs.
-    try:
-        dagshub.init(
-            repo_owner=repo_owner,
-            repo_name=repo_name,
-            mlflow=True,
-        )
-        print(f"MLflow Tracking URI: {mlflow.get_tracking_uri()}")
-    except Exception as e:
-        logging.warning('DagsHub initialization skipped: %s', e)
+def save_registry(registry):
+    """Save the model registry."""
+    with open('reports/model_registry.json', 'w') as f:
+        json.dump(registry, f, indent=4)
 
-    client = mlflow.MlflowClient()
 
+def get_model_score(version_data):
+    """Calculate a composite score for model comparison."""
+    metrics = version_data.get('metrics', {})
+    
+    # Use accuracy as primary metric, or weighted composite
+    accuracy = metrics.get('accuracy', 0)
+    precision = metrics.get('precision', 0)
+    recall = metrics.get('recall', 0)
+    f1 = metrics.get('f1_score', 0)
+    auc = metrics.get('auc', 0)
+    
+    # Weighted score: prioritize accuracy and AUC
+    score = (accuracy * 0.4 + auc * 0.3 + f1 * 0.2 +
+             precision * 0.05 + recall * 0.05)
+    
+    return score
+
+
+def promote_best_model():
+    """Promote the best staging model to production."""
+    registry = load_registry()
+    if not registry:
+        return
+    
     model_name = "my_model"
-    # Get the latest version in staging
-    latest_version_staging = client.get_latest_versions(model_name, stages=["Staging"])[0].version
-
-    # Archive the current production model
-    prod_versions = client.get_latest_versions(model_name, stages=["Production"])
-    for version in prod_versions:
-        client.transition_model_version_stage(
-            name=model_name,
-            version=version.version,
-            stage="Archived"
-        )
-
-    # Promote the new model to production
-    client.transition_model_version_stage(
-        name=model_name,
-        version=latest_version_staging,
-        stage="Production"
+    if model_name not in registry.get("models", {}):
+        logging.error(f'Model {model_name} not found in registry')
+        return
+    
+    model_data = registry["models"][model_name]
+    versions = model_data.get("versions", [])
+    
+    if not versions:
+        logging.error('No model versions found')
+        return
+    
+    # Find all staging models
+    staging_versions = [
+        v for v in versions if v.get('status') == 'staging'
+    ]
+    
+    if not staging_versions:
+        logging.info('No staging models to promote')
+        return
+    
+    # Find the best staging model
+    best_version = max(staging_versions, key=get_model_score)
+    best_score = get_model_score(best_version)
+    
+    logging.info(
+        f'Best staging model: v{best_version["version"]} '
+        f'(score: {best_score:.4f})'
     )
-    print(f"Model version {latest_version_staging} promoted to Production")
+    
+    # Archive all current production models
+    for version in versions:
+        if version.get('status') == 'production':
+            version['status'] = 'archived'
+            logging.info(f'Archived v{version["version"]}')
+    
+    # Archive lower-performing staging models
+    for version in staging_versions:
+        if version['version'] != best_version['version']:
+            version['status'] = 'archived'
+            logging.info(f'Archived v{version["version"]}')
+    
+    # Promote best model to production
+    best_version['status'] = 'production'
+    logging.info(
+        f'Promoted v{best_version["version"]} to production'
+    )
+    
+    # Save updated registry
+    save_registry(registry)
+    
+    # Print summary
+    print('\n' + '='*80)
+    print('🎉 MODEL PROMOTION COMPLETED')
+    print('='*80)
+    print(f'📦 Model: {model_name}')
+    print(f'🔢 Promoted Version: v{best_version["version"]}')
+    print(f'📊 Score: {best_score:.4f}')
+    print(f'\n📈 Metrics:')
+    for k, v in best_version.get('metrics', {}).items():
+        print(f'   • {k}: {v:.4f}')
+    print('='*80 + '\n')
+
 
 if __name__ == "__main__":
-    promote_model()
+    promote_best_model()

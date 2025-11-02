@@ -215,7 +215,7 @@ def register_model(model_name: str, model_info: dict):
             'mlflow_experiment_url': f"https://dagshub.com/{dagshub_repo_owner}/{dagshub_repo_name}.mlflow/#/experiments/{experiment_id}",
             'registered_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'metrics': metrics,
-            'status': 'production'  # Can be: development, staging, production, archived
+            'status': 'staging'  # Can be: development, staging, production, archived
         }
         
         # Initialize model entry if it doesn't exist
