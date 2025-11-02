@@ -156,11 +156,17 @@ PREDICTION_COUNT = Counter(
 # Model and vectorizer setup
 model_name = "my_model"
 def get_latest_model_version(model_name):
-    client = mlflow.MlflowClient()
-    latest_version = client.get_latest_versions(model_name, stages=["Production"])
-    if not latest_version:
-        latest_version = client.get_latest_versions(model_name, stages=["None"])
-    return latest_version[0].version if latest_version else None
+    try:
+        client = mlflow.MlflowClient()
+        latest_version = client.get_latest_versions(model_name, stages=["Production"])
+        if not latest_version:
+            latest_version = client.get_latest_versions(model_name, stages=["None"])
+        return latest_version[0].version if latest_version else None
+    except Exception as e:
+        # If the registry call fails (no registered model, auth, API),
+        # return None so the application falls back to local model files.
+        print(f"Warning: could not fetch registered model versions: {e}")
+        return None
 
 model_version = get_latest_model_version(model_name)
 
