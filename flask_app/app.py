@@ -3,7 +3,40 @@ import mlflow
 import pickle
 import os
 import pandas as pd
-from prometheus_client import Counter, Histogram, generate_latest, CollectorRegistry, CONTENT_TYPE_LATEST
+try:
+    from prometheus_client import (
+        Counter,
+        Histogram,
+        generate_latest,
+        CollectorRegistry,
+        CONTENT_TYPE_LATEST,
+    )
+except Exception:
+    # Provide lightweight no-op fallbacks so the app can import and run
+    # even when prometheus_client isn't installed (useful for CI/test).
+    class _NoopMetric:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def labels(self, *args, **kwargs):
+            return self
+
+        def inc(self, amount=1):
+            return None
+
+        def observe(self, value):
+            return None
+
+    class CollectorRegistry:
+        pass
+
+    def generate_latest(registry):
+        return b""
+
+    CONTENT_TYPE_LATEST = "text/plain; version=0.0.4; charset=utf-8"
+
+    Counter = _NoopMetric
+    Histogram = _NoopMetric
 import time
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
