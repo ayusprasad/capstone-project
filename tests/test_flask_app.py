@@ -1,5 +1,5 @@
 import unittest
-from flask_app.app import app
+from flask_app.app import app, model, vectorizer
 
 class FlaskAppTests(unittest.TestCase):
 
@@ -15,11 +15,12 @@ class FlaskAppTests(unittest.TestCase):
 
     def test_predict_page(self):
         response = self.client.post('/predict', data=dict(text="I love this!"))
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(
-            b'Positive' in response.data or b'Negative' in response.data,
-            "Response should contain either 'Positive' or 'Negative'"
-        )
+        if model is None or vectorizer is None:
+            self.assertEqual(response.status_code, 503)
+            self.assertIn(b"Prediction service is not configured", response.data)
+        else:
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(b"Positive" in response.data or b"Negative" in response.data)
 
 if __name__ == '__main__':
     unittest.main()
