@@ -267,7 +267,7 @@ def predict():
         # Check if vectorizer exists
         if vectorizer is None:
             print("Error: Vectorizer not loaded")
-            return render_template("index.html", result="Error: Vectorizer not available"), 500
+            return render_template("index.html", result="Prediction service is not configured. Provide a trained model and vectorizer."), 503
         
         # Convert to features
         try:
