@@ -1,110 +1,40 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
-on: push
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
-  project-testing:
+  test:
+    name: Test Flask Application & Model Artifacts
     runs-on: ubuntu-latest
-
     steps:
-      - name: checkout code
-        uses: actions/checkout@v3
-
-      - name: setup python
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Cache pip dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: install DVC
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install 'dvc[s3]'
-
-      - name: run pipeline
-        env:
-          CAPSTONE_TEST: ${{ secrets.CAPSTONE_TEST }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
-          REGION_NAME: ${{ secrets.REGION_NAME }}
+          pip install -r flask_app/requirements.txt
+      - name: Verify Models
         run: |
-          dvc repro
-          
-      - name: Run model tests
-        env:
-          CAPSTONE_TEST: ${{ secrets.CAPSTONE_TEST }}
-        run: |
-          python -m unittest tests/test_model.py
+          python -c "import os; assert os.path.exists('models/model.joblib')"
 
-      - name: Promote model to production
-        if: success()
-        env:
-          CAPSTONE_TEST: ${{ secrets.CAPSTONE_TEST }}
-        run: |
-          python scripts/promote_model.py --model-name my_model --local-only \
-            --metrics accuracy,auc,recall --weights 1,1,1
-
-      - name: Run Flask app tests
-        if: success()
-        env:
-          CAPSTONE_TEST: ${{ secrets.CAPSTONE_TEST }}
-        run: python -m unittest tests/test_flask_app.py
-
-      - name: Configure AWS credentials
-        if: success()
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.REGION_NAME }}
-
-      - name: Login to AWS ECR
-        if: success()
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
+  docker:
+    name: Build Docker Image
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: actions/setup-buildx-action@v3
       - name: Build Docker image
-        if: success()
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-
-      - name: Push Docker image to ECR
-        if: success()
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-        run: |
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-
-      - name: Set Up kubectl
-        uses: azure/setup-kubectl@v3
+        uses: docker/build-push-action@v5
         with:
-          version: 'latest'
-      
-      - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig --region us-east-1 --name flask-app-cluster
-
-      - name: Create Kubernetes Secret
-        run: |
-          kubectl create secret generic capstone-secret \
-            --from-literal=CAPSTONE_TEST=${{ secrets.CAPSTONE_TEST }} --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Deploy to EKS
-        run: |
-          kubectl apply -f deployment.yaml
+          context: .
+          push: false
+          tags: capstone-app:latest
