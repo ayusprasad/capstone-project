@@ -39,10 +39,8 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 import string
 import re
-import dagshub
 import dotenv
 from pathlib import Path
-import sys
 import numpy as np
 
 import warnings
@@ -269,7 +267,7 @@ def predict():
         # Check if vectorizer exists
         if vectorizer is None:
             print("Error: Vectorizer not loaded")
-            return render_template("index.html", result="Error: Vectorizer not available"), 500
+            return render_template("index.html", result="Prediction service is not configured. Provide a trained model and vectorizer."), 503
         
         # Convert to features
         try:
@@ -291,7 +289,7 @@ def predict():
         except Exception as e:
             print(f"Error transforming text: {e}")
             return render_template("index.html", 
-                                 result=f"Error processing text: {str(e)}"), 500
+                                 result="The submitted text could not be processed."), 500
 
         # Convert to DataFrame for prediction
         features_df = pd.DataFrame(
@@ -306,7 +304,7 @@ def predict():
         except Exception as e:
             print(f"Error during model prediction: {e}")
             return render_template("index.html", 
-                                 result=f"Error during prediction: {str(e)}"), 500
+                                 result="Prediction is temporarily unavailable."), 500
 
         # Increment prediction count metric
         PREDICTION_COUNT.labels(prediction=str(prediction)).inc()
@@ -318,7 +316,7 @@ def predict():
     
     except Exception as e:
         print(f"Unexpected error in /predict: {e}")
-        return render_template("index.html", result=f"Unexpected error: {str(e)}"), 500
+        return render_template("index.html", result="Something went wrong while generating a prediction."), 500
 
 @app.route("/metrics", methods=["GET"])
 def metrics():
@@ -326,4 +324,4 @@ def metrics():
     return generate_latest(registry), 200, {"Content-Type": CONTENT_TYPE_LATEST}
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=False, host=os.getenv("HOST", "127.0.0.1"), port=int(os.getenv("PORT", "5000")))

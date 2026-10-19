@@ -1,30 +1,25 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    NLTK_DATA=/usr/local/share/nltk_data
 
 WORKDIR /app
 
-# Copy Flask app and requirements
-COPY flask_app/ /app/
+COPY flask_app/requirements.txt ./requirements.txt
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && python -m pip install --no-cache-dir -r requirements.txt \
+    && mkdir -p "$NLTK_DATA" \
+    && python -m nltk.downloader -d "$NLTK_DATA" stopwords wordnet
 
-# Create models directory
-RUN mkdir -p /app/models
+COPY flask_app/ ./
+COPY models/ ./models/
+COPY reports/ ./reports/
 
-# Copy model files 
-COPY models/* /app/models/
+RUN adduser --disabled-password --no-create-home app \
+    && chown -R app:app /app
 
-# Ensure correct permissions
-RUN chmod -R 755 /app/models
-
-RUN pip install -r requirements.txt
-
-RUN python -m nltk.downloader stopwords wordnet
+USER app
 
 EXPOSE 5000
-
-# Set environment variables
-ENV FLASK_APP=app.py
-ENV FLASK_ENV=production
-ENV PYTHONUNBUFFERED=1
-
-# CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "120", "app:app"]
-# Command to run the Flask application
-CMD ["flask", "run", "--host=0.0.0.0"]
+CMD ["waitress-serve", "--listen=0.0.0.0:5000", "app:app"]
