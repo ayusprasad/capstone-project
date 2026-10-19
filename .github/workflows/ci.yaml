@@ -1,6 +1,7 @@
-name: CI Pipeline
+name: Manual deployment
 
-on: push
+on:
+  workflow_dispatch:
 
 jobs:
   project-testing:
