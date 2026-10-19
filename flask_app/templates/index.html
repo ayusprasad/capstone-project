@@ -40,20 +40,16 @@
 
         {% if result is not none %}
             <div class="result-container">
-                <div class="result {% if result == 1 %}positive{% else %}negative{% endif %}">
-                    <span class="emoji floating">
-                        {% if result == 1 %}
-                            😊
-                        {% else %}
-                            😞
-                        {% endif %}
-                    </span>
-                    {% if result == 1 %}
-                        Positive Sentiment Detected!
-                    {% else %}
-                        Negative Sentiment Detected
-                    {% endif %}
-                </div>
+                {% if result in [0, 1] %}
+                    <div class="result {% if result == 1 %}positive{% else %}negative{% endif %}">
+                        <span class="emoji floating">
+                            {% if result == 1 %}😊{% else %}😞{% endif %}
+                        </span>
+                        {% if result == 1 %}Positive Sentiment Detected!{% else %}Negative Sentiment Detected{% endif %}
+                    </div>
+                {% else %}
+                    <div class="result unavailable" role="alert">{{ result }}</div>
+                {% endif %}
             </div>
         {% endif %}
 
